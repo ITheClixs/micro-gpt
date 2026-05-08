@@ -61,6 +61,11 @@ def finetune_model(
     model_checkpoint="gpt2",
     output_dir="./results",
     model_output_dir="./fine_tuned_gpt2_summarizer",
+    dataset_name="cnn_dailymail",
+    dataset_config="3.0.0",
+    data_files=None,
+    article_column="article",
+    summary_column="highlights",
     train_size=100,
     eval_size=10,
     max_length=1024,
@@ -75,6 +80,11 @@ def finetune_model(
 
     tokenized_datasets, tokenizer, raw_datasets = prepare_data(
         model_checkpoint=model_checkpoint,
+        dataset_name=dataset_name,
+        dataset_config=dataset_config,
+        data_files=data_files,
+        article_column=article_column,
+        summary_column=summary_column,
         train_size=train_size,
         eval_size=eval_size,
         max_length=max_length,

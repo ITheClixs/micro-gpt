@@ -13,6 +13,35 @@ def build_prompt(article):
     return f"{PROMPT_PREFIX}{article}{SUMMARY_PREFIX}"
 
 
+def load_summarization_dataset(
+    dataset_name=DEFAULT_DATASET_NAME,
+    dataset_config=DEFAULT_DATASET_CONFIG,
+    data_files=None,
+):
+    load_kwargs = {}
+    if data_files:
+        load_kwargs["data_files"] = data_files
+
+    if dataset_config:
+        return load_dataset(dataset_name, dataset_config, **load_kwargs)
+    return load_dataset(dataset_name, **load_kwargs)
+
+
+def validate_summarization_columns(dataset, article_column="article", summary_column="highlights"):
+    required_columns = {article_column, summary_column}
+    for split_name in ("train", "validation"):
+        if split_name not in dataset:
+            raise ValueError(f"Dataset must include a '{split_name}' split.")
+
+        split_columns = set(dataset[split_name].column_names)
+        missing_columns = sorted(required_columns - split_columns)
+        if missing_columns:
+            missing = ", ".join(missing_columns)
+            raise ValueError(
+                f"Dataset split '{split_name}' is missing required column(s): {missing}"
+            )
+
+
 def load_tokenizer(model_checkpoint, local_files_only):
     try:
         return AutoTokenizer.from_pretrained(
@@ -33,6 +62,9 @@ def prepare_data(
     model_checkpoint="gpt2",
     dataset_name=DEFAULT_DATASET_NAME,
     dataset_config=DEFAULT_DATASET_CONFIG,
+    data_files=None,
+    article_column="article",
+    summary_column="highlights",
     max_length=1024,
     max_target_length=128,
     train_size=100,
@@ -41,7 +73,16 @@ def prepare_data(
     return_raw=False,
 ):
     print("Loading dataset...")
-    dataset = load_dataset(dataset_name, dataset_config, streaming=False)
+    dataset = load_summarization_dataset(
+        dataset_name=dataset_name,
+        dataset_config=dataset_config,
+        data_files=data_files,
+    )
+    validate_summarization_columns(
+        dataset,
+        article_column=article_column,
+        summary_column=summary_column,
+    )
 
     print(f"Loading tokenizer for {model_checkpoint}...")
     tokenizer = load_tokenizer(model_checkpoint, local_files_only)
@@ -64,7 +105,7 @@ def prepare_data(
         prompt_prefix_ids = tokenizer(PROMPT_PREFIX, add_special_tokens=False)["input_ids"]
         summary_prefix_ids = tokenizer(SUMMARY_PREFIX, add_special_tokens=False)["input_ids"]
 
-        for article, highlights in zip(examples["article"], examples["highlights"]):
+        for article, highlights in zip(examples[article_column], examples[summary_column]):
             summary_ids = tokenizer(
                 highlights,
                 add_special_tokens=False,
