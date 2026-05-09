@@ -30,7 +30,7 @@ The existing GPT-2 summarization path remains as a Hugging Face baseline and his
 
 The backpropagation track uses explicit derivatives and finite-difference/autograd agreement tests. It supports gradient-norm and loss-surface visualizations for learning-rate, activation, and initialization studies.
 
-The optimizer track compares SGD, momentum, RMSProp, Adam, and AdamW updates on controlled surfaces. Later work should add warmup, cosine decay, gradient clipping, and schedule ablations.
+The optimizer track compares SGD, momentum, RMSProp, Adam, AdamW, Lion, and Muon-style matrix updates on controlled surfaces. Later work should add warmup, cosine decay, gradient clipping, schedule ablations, and optimizer-state visualizations for matrix-valued updates.
 
 ### CNNs
 
@@ -42,11 +42,15 @@ The RNN track implements vanilla RNN, GRU, and LSTM cells. It visualizes hidden-
 
 ### Reinforcement Learning
 
-The RL track starts with GridWorld and implements returns, advantages, DQN-style value learning, REINFORCE, actor-critic, and PPO-style clipped objectives. It should later connect to TRL methods for language-model post-training, especially DPO, GRPO, and reward modeling.
+The RL and alignment track starts with GridWorld and implements returns, advantages, DQN-style value learning, REINFORCE, actor-critic, and PPO-style clipped objectives. It also includes local DPO loss and GRPO-style grouped advantage primitives for inspecting modern language-model alignment math without launching TRL training.
 
 ### Micro-GPT
 
-The micro-GPT track implements a small causal language model with modern decoder-only components. Initial experiments use deterministic dry runs and TinyStories-style corpora. Future training should report config, seed, parameter count, token budget, validation perplexity, generated samples, hardware, and wall-clock time.
+The micro-GPT track implements a small causal language model with modern decoder-only components. It now has a terminal-first CLI for inspection, one-step smoke runs, random-init generation, and checkpoint round trips. Initial experiments use deterministic dry runs and TinyStories-style corpora. Future training should report config, seed, parameter count, token budget, validation perplexity, generated samples, hardware, and wall-clock time.
+
+### Parameter-Efficient Adaptation
+
+The adapter track implements LoRA-style low-rank linear adapters with frozen base weights. The initial primitive is intended for shape, dtype/device, and trainable-parameter inspection before any real fine-tuning workflow is added.
 
 ## Evaluation
 
@@ -66,4 +70,5 @@ No result should be included in README claims unless produced by a committed scr
 - Add ablations for learned positions vs RoPE, LayerNorm vs RMSNorm, GELU vs SwiGLU, and SDPA vs manual attention.
 - Add a Hugging Face dataset-inspection command before any managed training job.
 - Add TRL recipes for SFT, DPO, GRPO, and reward modeling after the pretraining baseline is validated.
+- Add LoRA and QLoRA integration experiments after base micro-GPT checkpointing is stable.
 - Add mechanistic interpretability probes: activation patching, attention-head entropy, residual stream norms, and logit-lens views.
