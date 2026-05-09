@@ -7,9 +7,17 @@ from transformers import AutoModelForCausalLM, Trainer, TrainingArguments, defau
 from .prepare_data import build_prompt, prepare_data
 
 
-def print_sample_summary(model, tokenizer, raw_validation_dataset, max_length, max_target_length):
+def print_sample_summary(
+    model,
+    tokenizer,
+    raw_validation_dataset,
+    max_length,
+    max_target_length,
+    article_column="article",
+    summary_column="highlights",
+):
     sample = raw_validation_dataset[0]
-    prompt = build_prompt(sample["article"])
+    prompt = build_prompt(sample[article_column])
     prompt_max_length = max(1, max_length - max_target_length)
     inputs = tokenizer(
         prompt,
@@ -38,7 +46,7 @@ def print_sample_summary(model, tokenizer, raw_validation_dataset, max_length, m
     print("\nSample generated summary:")
     print(generated_summary or "(empty)")
     print("\nReference summary:")
-    print(sample["highlights"])
+    print(sample[summary_column])
 
 
 def load_model(model_checkpoint, local_files_only):
@@ -131,6 +139,8 @@ def finetune_model(
         raw_datasets["validation"],
         max_length=max_length,
         max_target_length=max_target_length,
+        article_column=article_column,
+        summary_column=summary_column,
     )
 
     print(f"Saving fine-tuned model to {model_output_dir}...")

@@ -1,0 +1,15 @@
+{
+  "batch_size": 32,
+  "bias": false,
+  "block_size": 256,
+  "dropout": 0.1,
+  "grad_clip": 1.0,
+  "learning_rate": 0.0003,
+  "max_steps": 100000,
+  "n_embd": 384,
+  "n_head": 6,
+  "n_layer": 8,
+  "seed": 1337,
+  "vocab_size": 32000,
+  "weight_decay": 0.1
+}
