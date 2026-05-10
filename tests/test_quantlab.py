@@ -218,6 +218,34 @@ class QuantlabTest(unittest.TestCase):
         self.assertIn("bid_depth", events[0].extras)
         self.assertIn("latent_pressure", events[0].extras)
 
+    def test_multihorizon_label_frame_round_trip(self):
+        from src.quantlab.core import MultiHorizonLabelFrame
+        frame = MultiHorizonLabelFrame(
+            timestamp_ms=1_700_000_000_000,
+            symbol="BTCUSDT",
+            horizons={
+                1: {"direction": 1, "future_return": 0.0001, "future_vol": 0.0002, "future_spread": 0.5},
+                5: {"direction": 0, "future_return": 0.0000, "future_vol": 0.0003, "future_spread": 0.4},
+            },
+        )
+        payload = frame.to_dict()
+        self.assertEqual(payload["timestamp_ms"], 1_700_000_000_000)
+        self.assertEqual(payload["symbol"], "BTCUSDT")
+        self.assertEqual(payload["horizons"]["1"]["direction"], 1)
+        self.assertEqual(payload["horizons"]["5"]["future_return"], 0.0)
+
+    def test_sequence_window_round_trip(self):
+        from src.quantlab.core import SequenceWindow
+        window = SequenceWindow(
+            timestamp_ms=1_700_000_000_000,
+            symbol="BTCUSDT",
+            sequence_length=128,
+            feature_keys=("a", "b"),
+        )
+        payload = window.to_dict()
+        self.assertEqual(payload["sequence_length"], 128)
+        self.assertEqual(payload["feature_keys"], ["a", "b"])
+
     def _synthetic_orderflow_rows(self):
         feature_rows = []
         label_rows = []

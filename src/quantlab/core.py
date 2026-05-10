@@ -66,3 +66,36 @@ class LabelFrame:
         payload.update(payload.pop("extras"))
         return payload
 
+
+@dataclass(frozen=True)
+class MultiHorizonLabelFrame:
+    timestamp_ms: int
+    symbol: str
+    horizons: dict[int, dict[str, float]] = field(default_factory=dict)
+
+    def to_dict(self):
+        return {
+            "timestamp_ms": int(self.timestamp_ms),
+            "symbol": str(self.symbol),
+            "horizons": {
+                str(int(h)): {str(k): float(v) for k, v in payload.items()}
+                for h, payload in sorted(self.horizons.items())
+            },
+        }
+
+
+@dataclass(frozen=True)
+class SequenceWindow:
+    timestamp_ms: int
+    symbol: str
+    sequence_length: int
+    feature_keys: tuple[str, ...]
+
+    def to_dict(self):
+        return {
+            "timestamp_ms": int(self.timestamp_ms),
+            "symbol": str(self.symbol),
+            "sequence_length": int(self.sequence_length),
+            "feature_keys": list(self.feature_keys),
+        }
+
