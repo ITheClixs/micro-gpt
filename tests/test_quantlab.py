@@ -6,6 +6,7 @@ from pathlib import Path
 from src.quantlab.backtest import BacktestConfig, build_backtest_from_paths, run_backtest, walk_forward_splits
 from src.quantlab.baselines import fit_ridge_direction_model, predict_direction_score, predict_trade_action, predict_ewma_volatility
 from src.quantlab.core import FeatureFrame, LabelFrame, MarketEvent
+from src.quantlab.demo import generate_btcusdt_like_events, run_demo_pipeline
 from src.quantlab.features import book_imbalance, depth_imbalance, microprice, midprice, order_flow_imbalance, realized_volatility, signed_volume
 from src.quantlab.labels import label_direction, triple_barrier_label
 from src.quantlab.datasets import build_dataset_manifest
@@ -184,6 +185,38 @@ class QuantlabTest(unittest.TestCase):
         self.assertLess(artifact.metrics["final_loss"], artifact.metrics["initial_loss"])
         self.assertEqual(len(prediction_rows), len(feature_rows))
         self.assertIn("action", prediction_rows[0])
+
+    def test_demo_pipeline_writes_end_to_end_artifacts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary = run_demo_pipeline(
+                temp_dir,
+                rows=36,
+                hidden_dim=8,
+                max_epochs=30,
+                learning_rate=0.03,
+                no_trade_threshold=0.05,
+                seed=17,
+            )
+
+            artifact_paths = [Path(path) for path in summary["artifacts"].values()]
+            summary_path = Path(summary["summary"])
+
+            self.assertEqual(summary["counts"]["events"], 36)
+            self.assertEqual(summary["counts"]["features"], summary["counts"]["labels"])
+            self.assertGreater(summary["counts"]["features"], 0)
+            self.assertLess(summary["metrics"]["final_loss"], summary["metrics"]["initial_loss"])
+            self.assertIn("equity_curve", summary["backtest"])
+            self.assertEqual(len(summary["paper_references"]), 3)
+            self.assertTrue(all(path.exists() for path in artifact_paths))
+            self.assertTrue(summary_path.exists())
+
+    def test_synthetic_events_include_order_book_depth_metadata(self):
+        events = generate_btcusdt_like_events(rows=8, seed=5)
+
+        self.assertEqual(len(events), 8)
+        self.assertEqual(events[0].source, "synthetic_demo")
+        self.assertIn("bid_depth", events[0].extras)
+        self.assertIn("latent_pressure", events[0].extras)
 
     def _synthetic_orderflow_rows(self):
         feature_rows = []

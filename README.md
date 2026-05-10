@@ -156,6 +156,16 @@ Train the deterministic baseline and run a bounded backtest:
   --output /tmp/btcusdt_backtest.json
 ```
 
+Run the synthetic end-to-end quantlab demo. This generates BTCUSDT-like market events, builds aligned features and labels, trains the MLP, writes predictions, and runs the cost-aware backtest without launching long training:
+
+```bash
+./venv/bin/python -m src.quantlab.demo run \
+  --output-dir /tmp/quantlab_demo \
+  --rows 96 \
+  --max-epochs 50 \
+  --no-trade-threshold 0.05
+```
+
 Train the first CPU-safe supervised model, a compact MLP over stationary order-flow features:
 
 ```bash

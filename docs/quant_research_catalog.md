@@ -43,6 +43,13 @@ The `src.quantlab.labels` module defines research targets:
 - Outputs: down/hold/up probabilities, an expected-edge score defined as `P(up) - P(down)`, and a thresholded buy/sell/hold action.
 - Artifacts: local `.pt` model files, JSON metrics, and JSONL prediction rows under `/tmp` by default.
 
+## Synthetic Demo Pipeline
+
+- `src.quantlab.demo` generates deterministic BTCUSDT-like `MarketEvent` JSONL with latent regimes and order-book depth.
+- The CLI writes aligned feature and label rows before training so predictions and labels share timestamps.
+- The smoke path materializes model, metric, prediction, backtest, and summary artifacts under the selected output directory.
+- Paper-search MCP references are captured in the summary: FinRL for full-stack quant workflow shape, JANET for future time-series uncertainty calibration, and DOME for explicit supervised-ML validation reporting.
+
 ## Backtest Rules
 
 - Walk-forward splits must keep train, validation, and test windows disjoint.

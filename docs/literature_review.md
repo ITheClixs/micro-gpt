@@ -32,10 +32,15 @@ This document tracks the research references that shape the repository. It is no
 - [Avellaneda-Stoikov market making](https://www.math.nyu.edu/~avellane/AvellanedaStoikov.pdf): Inventory-aware market making with explicit spread and risk controls.
 - [DeepLOB](https://huggingface.co/papers?q=Limit+Order+Book): Deep learning on limit order books; a reference point for order-book feature pipelines.
 - [TLOB](https://huggingface.co/papers/2502.15757): Transformer-style limit order book modeling for future sequence-model experiments.
-- [FinRL](https://huggingface.co/papers/2011.09607): Reinforcement-learning trading environments and portfolio control.
+- [FinRL](https://arxiv.org/abs/2111.09395): Full-stack trading research framework with explicit data, environment, reward, and backtest layers. The quantlab demo borrows this reproducible pipeline shape without claiming DRL parity.
 - [FinRL-Meta](https://huggingface.co/papers/2112.06753): Dataset and environment infrastructure for financial RL research.
 - [DRL crypto market making](https://huggingface.co/papers/1911.08647): Reinforcement learning in crypto market making, useful as a public analogue for inventory-sensitive strategies.
 - [MacroHFT](https://huggingface.co/papers/2406.14537): Regime routing and high-frequency inference ideas for future market-state gating.
+
+## Time-Series Uncertainty and Validation
+
+- [JANET](https://arxiv.org/abs/2407.06390): Adaptive conformal prediction regions for time series; a future target for calibrated quantlab prediction intervals over sequential market states.
+- [DOME](https://arxiv.org/abs/2006.16189): Structured supervised-ML reporting discipline around data, optimization, model, and evaluation. The quantlab demo follows this by writing explicit artifacts for each stage.
 
 ## Research Hygiene
 

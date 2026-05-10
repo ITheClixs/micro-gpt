@@ -115,6 +115,24 @@ def feature_frame_from_events(previous: MarketEvent, current: MarketEvent, recen
 
 
 def parse_market_event(row):
+    core_keys = {
+        "timestamp_ms",
+        "symbol",
+        "event_type",
+        "bid_price",
+        "ask_price",
+        "bid_size",
+        "ask_size",
+        "last_price",
+        "last_size",
+        "side",
+        "source",
+    }
+    extras = {key: value for key, value in row.items() if key not in core_keys}
+    if "bid_depth" in extras:
+        extras["bid_depth"] = _parse_depth(extras["bid_depth"], row["bid_size"])
+    if "ask_depth" in extras:
+        extras["ask_depth"] = _parse_depth(extras["ask_depth"], row["ask_size"])
     return MarketEvent(
         timestamp_ms=parse_int(row["timestamp_ms"]),
         symbol=str(row["symbol"]),
@@ -127,7 +145,21 @@ def parse_market_event(row):
         last_size=parse_float(row.get("last_size"), default=0.0) if row.get("last_size") not in {None, ""} else None,
         side=row.get("side") or None,
         source=str(row.get("source", "public")),
+        extras=extras,
     )
+
+
+def _parse_depth(value, fallback):
+    if value is None or value == "":
+        return [parse_float(fallback)]
+    if isinstance(value, (list, tuple)):
+        return [parse_float(item) for item in value]
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("["):
+            return [parse_float(item) for item in json.loads(stripped)]
+        return [parse_float(item.strip()) for item in stripped.split(",") if item.strip()]
+    return [parse_float(value)]
 
 
 def build_feature_rows(events):
@@ -175,4 +207,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
