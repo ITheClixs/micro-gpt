@@ -115,6 +115,40 @@ Generate from the tuned checkpoint:
   --max-new-tokens 96
 ```
 
+## Hugging Face Quant Finance Reasoning Tuning
+
+Build a temporary corpus from public Hugging Face quantitative-finance reasoning datasets:
+
+```bash
+./venv/bin/python scripts/build_quant_hf_corpus.py \
+  --output /tmp/quant_hf_reasoning_corpus.md \
+  --metadata-out /tmp/quant_hf_reasoning_metadata.json
+```
+
+Train a bounded CPU checkpoint:
+
+```bash
+./venv/bin/python -m src.micro_gpt.train \
+  --config configs/micro_gpt/quant_hf_cpu.json \
+  --train \
+  --text-file /tmp/quant_hf_reasoning_corpus.md \
+  --checkpoint-out /tmp/micro_gpt_quant_hf.pt \
+  --metrics-out /tmp/micro_gpt_quant_hf_metrics.json \
+  --run-name quant-hf-reasoning-cpu
+```
+
+Sample conservatively from the tuned checkpoint:
+
+```bash
+./venv/bin/python -m src.micro_gpt.cli generate \
+  --config configs/micro_gpt/quant_hf_cpu.json \
+  --checkpoint /tmp/micro_gpt_quant_hf.pt \
+  --prompt "question: Derive the Black-Scholes equation" \
+  --max-new-tokens 160 \
+  --temperature 0.55 \
+  --top-k 12
+```
+
 ## Terminal Micro-GPT CLI
 
 Inspect the architecture and parameter count:

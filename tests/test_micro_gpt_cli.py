@@ -227,6 +227,26 @@ class MicroGPTCLITest(unittest.TestCase):
 
         self.assertGreaterEqual(len(output.strip()), len("abc"))
 
+    def test_generate_accepts_sampling_controls(self):
+        output = self.run_cli(
+            "generate",
+            "--config",
+            str(self.config_path),
+            "--prompt",
+            "abc",
+            "--max-new-tokens",
+            "2",
+            "--random-init",
+            "--vocab-text",
+            "abcdef",
+            "--temperature",
+            "0.7",
+            "--top-k",
+            "3",
+        )
+
+        self.assertGreaterEqual(len(output.strip()), len("abc"))
+
     def test_random_init_generation_decodes_each_requested_token(self):
         output = self.run_cli(
             "generate",

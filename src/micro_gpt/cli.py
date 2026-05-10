@@ -183,7 +183,16 @@ def smoke(config_path, text, max_new_tokens, save_checkpoint=None):
     }
 
 
-def generate_text(config_path, prompt, max_new_tokens, random_init=False, checkpoint=None, vocab_text=""):
+def generate_text(
+    config_path,
+    prompt,
+    max_new_tokens,
+    random_init=False,
+    checkpoint=None,
+    vocab_text="",
+    temperature=1.0,
+    top_k=None,
+):
     if not prompt:
         raise SystemExit("generate --prompt must not be empty.")
     if checkpoint is not None:
@@ -207,6 +216,8 @@ def generate_text(config_path, prompt, max_new_tokens, random_init=False, checkp
         input_ids,
         max_new_tokens=max_new_tokens,
         tokenizer_vocab_size=tokenizer.vocab_size,
+        temperature=temperature,
+        top_k=top_k,
     )
     return _decode_known(tokenizer, generated[0].tolist())
 
@@ -231,6 +242,8 @@ def build_parser():
     generate_parser.add_argument("--random-init", action="store_true")
     generate_parser.add_argument("--checkpoint")
     generate_parser.add_argument("--vocab-text", default="")
+    generate_parser.add_argument("--temperature", type=float, default=1.0)
+    generate_parser.add_argument("--top-k", type=non_negative_int)
 
     return parser
 
@@ -256,6 +269,8 @@ def main(argv=None):
                 random_init=args.random_init,
                 checkpoint=args.checkpoint,
                 vocab_text=args.vocab_text,
+                temperature=args.temperature,
+                top_k=args.top_k if args.top_k != 0 else None,
             )
         )
     return 0
