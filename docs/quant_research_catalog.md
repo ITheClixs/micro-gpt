@@ -36,6 +36,13 @@ The `src.quantlab.labels` module defines research targets:
 - EWMA volatility baseline.
 - Cost-aware action gating that suppresses trades when the expected edge does not exceed fees, slippage, and a no-trade threshold.
 
+## Supervised ML Models
+
+- `mlp_direction`: a compact CPU-safe PyTorch MLP over stationary order-flow features.
+- Inputs: order-flow imbalance, book imbalance, depth imbalance, signed volume, realized volatility, and spread.
+- Outputs: down/hold/up probabilities, an expected-edge score defined as `P(up) - P(down)`, and a thresholded buy/sell/hold action.
+- Artifacts: local `.pt` model files, JSON metrics, and JSONL prediction rows under `/tmp` by default.
+
 ## Backtest Rules
 
 - Walk-forward splits must keep train, validation, and test windows disjoint.
@@ -60,4 +67,4 @@ Future venue adapters can map the same schema to:
 - `src/quantlab/labels.py`
 - `src/quantlab/baselines.py`
 - `src/quantlab/backtest.py`
-
+- `src/quantlab/models.py`

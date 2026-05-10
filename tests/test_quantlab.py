@@ -3,12 +3,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.quantlab.backtest import BacktestConfig, run_backtest, walk_forward_splits
+from src.quantlab.backtest import BacktestConfig, build_backtest_from_paths, run_backtest, walk_forward_splits
 from src.quantlab.baselines import fit_ridge_direction_model, predict_direction_score, predict_trade_action, predict_ewma_volatility
 from src.quantlab.core import FeatureFrame, LabelFrame, MarketEvent
 from src.quantlab.features import book_imbalance, depth_imbalance, microprice, midprice, order_flow_imbalance, realized_volatility, signed_volume
 from src.quantlab.labels import label_direction, triple_barrier_label
 from src.quantlab.datasets import build_dataset_manifest
+from src.quantlab.io import write_jsonl
+from src.quantlab.models import build_prediction_rows, predict_from_paths, train_from_paths, train_mlp_direction_model
 
 
 class QuantlabTest(unittest.TestCase):
@@ -109,6 +111,112 @@ class QuantlabTest(unittest.TestCase):
 
         self.assertIn("btcusdt_microbar_v2", manifest["registry"])
         self.assertIn("cme_futures", manifest["adapter_targets"])
+
+    def test_mlp_direction_model_learns_synthetic_orderflow_signal(self):
+        feature_rows, label_rows = self._synthetic_orderflow_rows()
+
+        artifact = train_mlp_direction_model(
+            feature_rows,
+            label_rows,
+            hidden_dim=8,
+            max_epochs=80,
+            learning_rate=0.05,
+            seed=11,
+        )
+        positive_score = artifact.predict_edge(feature_rows[-1])
+        negative_score = artifact.predict_edge(feature_rows[0])
+
+        self.assertLess(artifact.metrics["final_loss"], artifact.metrics["initial_loss"])
+        self.assertGreater(positive_score, 0.0)
+        self.assertLess(negative_score, 0.0)
+
+    def test_mlp_prediction_rows_feed_backtest_file_builder(self):
+        feature_rows, label_rows = self._synthetic_orderflow_rows()
+        artifact = train_mlp_direction_model(
+            feature_rows,
+            label_rows,
+            hidden_dim=8,
+            max_epochs=80,
+            learning_rate=0.05,
+            seed=11,
+        )
+        prediction_rows = build_prediction_rows(artifact, feature_rows, no_trade_threshold=0.05)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            predictions_path = Path(temp_dir) / "predictions.jsonl"
+            labels_path = Path(temp_dir) / "labels.jsonl"
+            report_path = Path(temp_dir) / "report.json"
+            write_jsonl(predictions_path, prediction_rows)
+            write_jsonl(labels_path, [row.to_dict() for row in label_rows])
+
+            report = build_backtest_from_paths(predictions_path, labels_path, report_path, no_trade_threshold=0.05)
+            report_exists = report_path.exists()
+
+        self.assertTrue(report_exists)
+        self.assertIn("expected_edge", prediction_rows[0])
+        self.assertEqual(len(report.actions), len(label_rows))
+
+    def test_mlp_file_artifacts_round_trip_predictions(self):
+        feature_rows, label_rows = self._synthetic_orderflow_rows()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            features_path = Path(temp_dir) / "features.jsonl"
+            labels_path = Path(temp_dir) / "labels.jsonl"
+            model_path = Path(temp_dir) / "model.pt"
+            metrics_path = Path(temp_dir) / "metrics.json"
+            first_predictions_path = Path(temp_dir) / "train_predictions.jsonl"
+            second_predictions_path = Path(temp_dir) / "predict_predictions.jsonl"
+            write_jsonl(features_path, [row.to_dict() for row in feature_rows])
+            write_jsonl(labels_path, [row.to_dict() for row in label_rows])
+
+            artifact = train_from_paths(
+                features_path,
+                labels_path,
+                model_path,
+                predictions_out=first_predictions_path,
+                metrics_out=metrics_path,
+                hidden_dim=8,
+                max_epochs=80,
+                learning_rate=0.05,
+                no_trade_threshold=0.05,
+                seed=11,
+            )
+            prediction_rows = predict_from_paths(model_path, features_path, second_predictions_path, no_trade_threshold=0.05)
+
+        self.assertLess(artifact.metrics["final_loss"], artifact.metrics["initial_loss"])
+        self.assertEqual(len(prediction_rows), len(feature_rows))
+        self.assertIn("action", prediction_rows[0])
+
+    def _synthetic_orderflow_rows(self):
+        feature_rows = []
+        label_rows = []
+        for index, ofi in enumerate([-3.0, -2.0, -1.5, -1.0, 1.0, 1.5, 2.0, 3.0], start=1):
+            direction = 1 if ofi > 0 else -1
+            feature_rows.append(
+                FeatureFrame(
+                    index,
+                    "BTCUSDT",
+                    100.0 + index,
+                    0.5,
+                    100.0 + index + 0.01 * ofi,
+                    ofi,
+                    ofi / 4.0,
+                    ofi / 5.0,
+                    ofi,
+                    0.01,
+                )
+            )
+            label_rows.append(
+                LabelFrame(
+                    index,
+                    "BTCUSDT",
+                    1000,
+                    direction,
+                    0.002 * direction,
+                    0.01,
+                    direction,
+                    "buy" if direction > 0 else "sell",
+                )
+            )
+        return feature_rows, label_rows
 
 
 if __name__ == "__main__":

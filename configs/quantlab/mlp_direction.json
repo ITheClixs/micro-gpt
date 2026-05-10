@@ -1,0 +1,17 @@
+{
+  "feature_keys": [
+    "order_flow_imbalance",
+    "book_imbalance",
+    "depth_imbalance",
+    "signed_volume",
+    "realized_volatility",
+    "spread"
+  ],
+  "hidden_dim": 16,
+  "learning_rate": 0.01,
+  "max_epochs": 50,
+  "model": "mlp_direction",
+  "no_trade_threshold": 0.05,
+  "seed": 2026
+}
+

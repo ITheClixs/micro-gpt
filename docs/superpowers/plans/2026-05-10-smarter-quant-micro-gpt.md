@@ -8,14 +8,16 @@
 
 ## Implementation Checklist
 
-- [ ] Create `src/quantlab/` with canonical market-event, feature, label, baseline, and backtest primitives.
-- [ ] Add deterministic formulas for midprice, spread, microprice, order-flow imbalance, realized volatility, and triple-barrier labels.
-- [ ] Add walk-forward backtest accounting with fees, slippage, max position, and a no-trade guardrail.
-- [ ] Add CLI entrypoints for dataset, feature, label, baseline, and backtest commands.
-- [ ] Add a compact local BPE tokenizer implementation and quant BPE configs for smoke-scale tuning.
-- [ ] Preserve the current char tokenizer and existing checkpoint format for backwards compatibility.
-- [ ] Add `docs/quant_research_catalog.md` and connect the new work to the repo research docs.
-- [ ] Add unit tests for feature math, label generation, baseline decisions, backtest costs, and BPE tokenization.
+- [x] Create `src/quantlab/` with canonical market-event, feature, label, baseline, and backtest primitives.
+- [x] Add deterministic formulas for midprice, spread, microprice, order-flow imbalance, realized volatility, and triple-barrier labels.
+- [x] Add walk-forward backtest accounting with fees, slippage, max position, and a no-trade guardrail.
+- [x] Add CLI entrypoints for dataset, feature, label, baseline, and backtest commands.
+- [x] Add a compact local BPE tokenizer implementation and quant BPE configs for smoke-scale tuning.
+- [x] Preserve the current char tokenizer and existing checkpoint format for backwards compatibility.
+- [x] Add `docs/quant_research_catalog.md` and connect the new work to the repo research docs.
+- [x] Add unit tests for feature math, label generation, baseline decisions, backtest costs, and BPE tokenization.
+- [x] Add a CPU-safe `mlp_direction` model over quantlab order-flow features.
+- [x] Add JSONL prediction artifacts that can feed the cost-aware backtester.
 - [ ] Run repository verification commands and fix any regressions.
 
 ## Verification Targets

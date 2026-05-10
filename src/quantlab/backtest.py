@@ -8,7 +8,6 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from .baselines import predict_trade_action
-from .features import book_imbalance
 from .io import read_table
 
 
@@ -78,6 +77,14 @@ def _position_from_action(action, current_position, max_position):
     return current_position
 
 
+def _future_return(label):
+    if hasattr(label, "future_return"):
+        return float(label.future_return)
+    if isinstance(label, dict):
+        return float(label.get("future_return", 0.0))
+    raise KeyError("future_return")
+
+
 def run_backtest(feature_rows, label_rows, expected_edges, config=None):
     config = config or BacktestConfig()
     feature_rows = list(feature_rows)
@@ -100,7 +107,7 @@ def run_backtest(feature_rows, label_rows, expected_edges, config=None):
             trades += 1
         turnover = abs(next_position - position)
         cost_bps = config.fee_bps + config.slippage_bps
-        gross_pnl = next_position * float(label.future_return)
+        gross_pnl = next_position * _future_return(label)
         net_pnl = gross_pnl - turnover * cost_bps / 10000.0
         equity_curve.append(equity_curve[-1] + net_pnl)
         actions.append(action)

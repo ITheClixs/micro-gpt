@@ -156,6 +156,27 @@ Train the deterministic baseline and run a bounded backtest:
   --output /tmp/btcusdt_backtest.json
 ```
 
+Train the first CPU-safe supervised model, a compact MLP over stationary order-flow features:
+
+```bash
+./venv/bin/python -m src.quantlab.models train \
+  --features /tmp/btcusdt_features.jsonl \
+  --labels /tmp/btcusdt_labels.jsonl \
+  --model-out /tmp/quantlab_mlp_direction.pt \
+  --predictions-out /tmp/btcusdt_mlp_predictions.jsonl \
+  --metrics-out /tmp/quantlab_mlp_direction_metrics.json \
+  --hidden-dim 16 \
+  --max-epochs 50 \
+  --learning-rate 0.01 \
+  --no-trade-threshold 0.05
+
+./venv/bin/python -m src.quantlab.backtest run \
+  --predictions /tmp/btcusdt_mlp_predictions.jsonl \
+  --labels /tmp/btcusdt_labels.jsonl \
+  --output /tmp/btcusdt_mlp_backtest.json \
+  --no-trade-threshold 0.05
+```
+
 The `src.micro_gpt.train` path also supports BPE-aware configs such as `configs/micro_gpt/quant_bpe_6m.json` and `configs/micro_gpt/quant_bpe_15m.json`. These configs keep the from-scratch micro-GPT identity while allowing domain-specific token packing for quant research text.
 
 ## Hugging Face Quant Finance Reasoning Tuning
