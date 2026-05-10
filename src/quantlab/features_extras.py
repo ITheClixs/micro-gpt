@@ -113,8 +113,10 @@ class _State:
     short_vol_window: deque = None
     long_vol_window: deque = None
     tick_signs: deque = None
-    run_length: float = 0.0
-    last_side: str | None = None
+    aggressor_run_length: float = 0.0
+    last_aggressor_side: str | None = None
+    directional_run_length: float = 0.0
+    last_direction_sign: int = 0
     last_microprice: float | None = None
     last_timestamp_ms: int | None = None
 
@@ -182,12 +184,23 @@ def _build_row(previous: MarketEvent, current: MarketEvent, state: _State) -> di
     side_sign = 1 if sv > 0 else (-1 if sv < 0 else 0)
     if side_sign != 0:
         state.tick_signs.append(side_sign)
+
+    # Directional run-length: tracks consecutive same-sign signed-volume ticks.
+    if side_sign != 0:
+        if side_sign == state.last_direction_sign:
+            state.directional_run_length += 1.0
+        else:
+            state.directional_run_length = 1.0
+        state.last_direction_sign = side_sign
+    # Zero-volume tick neither extends nor resets the directional run.
+
+    # Aggressor run-length: tracks consecutive same-side explicit aggressor string.
     side = (current.side or "").lower()
-    if side and side == (state.last_side or ""):
-        state.run_length += 1.0
+    if side and side == (state.last_aggressor_side or ""):
+        state.aggressor_run_length += 1.0
     else:
-        state.run_length = 1.0
-    state.last_side = side
+        state.aggressor_run_length = 1.0
+    state.last_aggressor_side = side
 
     burst_dt = 1.0
     if state.last_timestamp_ms is not None:
@@ -260,7 +273,7 @@ def _build_row(previous: MarketEvent, current: MarketEvent, state: _State) -> di
         ),
         "signed_volume_ema_slow": _clip(state.sv_ema_slow),
         "signed_volume_ema_fast": _clip(state.sv_ema_fast),
-        "directional_run_length": _clip(state.run_length),
+        "directional_run_length": _clip(state.directional_run_length),
         "trade_burst_rate": _clip(1.0 / burst_dt),
         "queue_depth_l2_over_l1": _clip(l2 / l1) if l1 > _EPS else 0.0,
         "queue_depth_l3_over_l1": _clip(l3 / l1) if l1 > _EPS else 0.0,
@@ -275,7 +288,7 @@ def _build_row(previous: MarketEvent, current: MarketEvent, state: _State) -> di
         "depth_imbalance_ema_fast": _clip(state.di_ema_fast),
         "depth_imbalance_ema_slow": _clip(state.di_ema_slow),
         "spread_regime": _clip(spread_regime),
-        "last_trade_aggressor_persistence": _clip(state.run_length),
+        "last_trade_aggressor_persistence": _clip(state.aggressor_run_length),
     }
 
 

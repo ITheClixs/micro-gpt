@@ -75,6 +75,20 @@ class TestFeaturesExtras(unittest.TestCase):
         for key in ("ofi_level_2", "ofi_level_3", "ofi_level_5"):
             self.assertIn(key, rows[0])
 
+    def test_zscore_warmup_returns_zero(self):
+        # With only 2-3 prior samples, _zscore should return 0.0 (warm-up gate).
+        events = [_make_event(t * 1000, last_size=float(t + 1)) for t in range(3)]
+        rows = build_extended_feature_rows(events)
+        self.assertEqual(rows[0]["signed_volume_zscore"], 0.0)
+
+    def test_directional_run_length_differs_from_aggressor_persistence(self):
+        # last_size=0 → signed_volume=0 (no directional tick), but side="buy" still extends aggressor run.
+        events = [_make_event(t * 1000, last_size=0.0, side="buy") for t in range(6)]
+        rows = build_extended_feature_rows(events)
+        last_row = rows[-1]
+        self.assertEqual(last_row["directional_run_length"], 0.0)
+        self.assertGreater(last_row["last_trade_aggressor_persistence"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
