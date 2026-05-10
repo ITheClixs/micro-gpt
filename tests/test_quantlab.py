@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.quantlab.backtest import BacktestConfig, build_backtest_from_paths, run_backtest, walk_forward_splits
 from src.quantlab.baselines import fit_ridge_direction_model, predict_direction_score, predict_trade_action, predict_ewma_volatility
-from src.quantlab.core import FeatureFrame, LabelFrame, MarketEvent
+from src.quantlab.core import FeatureFrame, LabelFrame, MarketEvent, MultiHorizonLabelFrame, SequenceWindow
 from src.quantlab.demo import generate_btcusdt_like_events, run_demo_pipeline
 from src.quantlab.features import book_imbalance, depth_imbalance, microprice, midprice, order_flow_imbalance, realized_volatility, signed_volume
 from src.quantlab.labels import label_direction, triple_barrier_label
@@ -219,7 +219,6 @@ class QuantlabTest(unittest.TestCase):
         self.assertIn("latent_pressure", events[0].extras)
 
     def test_multihorizon_label_frame_round_trip(self):
-        from src.quantlab.core import MultiHorizonLabelFrame
         frame = MultiHorizonLabelFrame(
             timestamp_ms=1_700_000_000_000,
             symbol="BTCUSDT",
@@ -235,7 +234,6 @@ class QuantlabTest(unittest.TestCase):
         self.assertEqual(payload["horizons"]["5"]["future_return"], 0.0)
 
     def test_sequence_window_round_trip(self):
-        from src.quantlab.core import SequenceWindow
         window = SequenceWindow(
             timestamp_ms=1_700_000_000_000,
             symbol="BTCUSDT",
