@@ -91,6 +91,30 @@ Train the repository-native micro-GPT on CPU:
   --run-name macbook-m4-cpu-tinystories-smoke
 ```
 
+## Quant Research Micro-GPT Tuning
+
+The repository includes a public-source quant research corpus for terminal-only domain tuning. It covers factor premia, statistical arbitrage, order-flow imbalance, inventory-aware market making, LOB deep learning, RL execution, labeling, backtesting, and risk sizing. It is for research vocabulary and formula grounding only, not trading advice.
+
+```bash
+./venv/bin/python -m src.micro_gpt.train \
+  --config configs/micro_gpt/quant_cpu_smoke.json \
+  --train \
+  --text-file data/quant_research_corpus.md \
+  --checkpoint-out /tmp/micro_gpt_quant_research.pt \
+  --metrics-out /tmp/micro_gpt_quant_research_metrics.json \
+  --run-name quant-research-cpu-smoke
+```
+
+Generate from the tuned checkpoint:
+
+```bash
+./venv/bin/python -m src.micro_gpt.cli generate \
+  --config configs/micro_gpt/quant_cpu_smoke.json \
+  --checkpoint /tmp/micro_gpt_quant_research.pt \
+  --prompt "Order-flow imbalance" \
+  --max-new-tokens 96
+```
+
 ## Terminal Micro-GPT CLI
 
 Inspect the architecture and parameter count:
@@ -168,6 +192,7 @@ This path fine-tunes a GPT-2 style causal language model for summarization. It i
 - [Literature review](docs/literature_review.md)
 - [Experiment protocol](docs/experiment_protocol.md)
 - [Hugging Face CPU training runbook](docs/huggingface_cpu_training.md)
+- [Quant micro-GPT research article](docs/quant_micro_gpt_research_article.md)
 - [Agent instructions](AGENTS.md)
 
 ## Current Research Rule
