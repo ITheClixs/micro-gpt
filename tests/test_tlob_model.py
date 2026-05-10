@@ -1,8 +1,16 @@
+import os
+import tempfile
 import unittest
 
 import torch
 
-from src.quantlab.tlob_model import TLOBQConfig, TLOBQModel
+from src.quantlab.tlob_model import (
+    EMAWeightTracker,
+    TLOBQConfig,
+    TLOBQModel,
+    load_tlob_q_artifact,
+    save_tlob_q_artifact,
+)
 
 
 def _smoke_config():
@@ -62,6 +70,44 @@ class TestTLOBQModel(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             TLOBQModel(config)
+
+    def test_ema_tracker_moves_toward_target(self):
+        config = _smoke_config()
+        model = TLOBQModel(config)
+        ema = EMAWeightTracker(model, decay=0.5)
+        with torch.no_grad():
+            for param in model.parameters():
+                param.add_(1.0)
+        ema.update(model)
+        shadow_state = ema.shadow_state()
+        current_state = model.state_dict()
+        diverged = False
+        for name in shadow_state:
+            if name in current_state and not torch.allclose(shadow_state[name], current_state[name]):
+                diverged = True
+                break
+        self.assertTrue(diverged)
+
+    def test_save_load_round_trip(self):
+        config = _smoke_config()
+        model = TLOBQModel(config)
+        ema = EMAWeightTracker(model, decay=0.5)
+        ema.update(model)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "artifact.pt")
+            save_tlob_q_artifact(
+                path,
+                model=model,
+                ema=ema,
+                config=config,
+                standardizer={"mean": [0.0], "scale": [1.0]},
+                metrics={"loss": 0.5},
+                meta={"seed": 42},
+            )
+            loaded = load_tlob_q_artifact(path)
+            self.assertEqual(loaded["config"].seed, 42)
+            self.assertIn("ema_state_dict", loaded)
+            self.assertEqual(loaded["metrics"]["loss"], 0.5)
 
 
 if __name__ == "__main__":

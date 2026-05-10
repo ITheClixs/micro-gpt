@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -126,3 +127,57 @@ class TLOBQModel(nn.Module):
 
     def count_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters())
+
+
+class EMAWeightTracker:
+    def __init__(self, model: TLOBQModel, decay: float = 0.999):
+        self.decay = float(decay)
+        self._shadow = {name: param.detach().clone() for name, param in model.state_dict().items()}
+
+    def update(self, model: TLOBQModel) -> None:
+        for name, param in model.state_dict().items():
+            if name not in self._shadow:
+                self._shadow[name] = param.detach().clone()
+                continue
+            self._shadow[name].mul_(self.decay).add_(param.detach(), alpha=1.0 - self.decay)
+
+    def shadow_state(self) -> dict[str, torch.Tensor]:
+        return {name: tensor.clone() for name, tensor in self._shadow.items()}
+
+    def load_into(self, model: TLOBQModel) -> None:
+        model.load_state_dict(self._shadow)
+
+
+def save_tlob_q_artifact(
+    path,
+    model: TLOBQModel,
+    ema: "EMAWeightTracker | None" = None,
+    config: "TLOBQConfig | None" = None,
+    standardizer: dict | None = None,
+    metrics: dict | None = None,
+    meta: dict | None = None,
+) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "state_dict": model.state_dict(),
+        "ema_state_dict": ema.shadow_state() if ema is not None else None,
+        "config": (config or model.config).to_dict(),
+        "standardizer": standardizer or {},
+        "metrics": metrics or {},
+        "meta": meta or {},
+    }
+    torch.save(payload, path)
+
+
+def load_tlob_q_artifact(path) -> dict:
+    payload = torch.load(Path(path), map_location="cpu", weights_only=False)
+    config = TLOBQConfig.from_dict(payload["config"])
+    return {
+        "state_dict": payload["state_dict"],
+        "ema_state_dict": payload.get("ema_state_dict"),
+        "config": config,
+        "standardizer": payload.get("standardizer", {}),
+        "metrics": payload.get("metrics", {}),
+        "meta": payload.get("meta", {}),
+    }
