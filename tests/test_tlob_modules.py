@@ -5,6 +5,8 @@ import torch
 from src.quantlab.tlob_modules import (
     BilinearNormalization,
     MCDropout,
+    MLPLOBFeatMix,
+    MLPLOBTempMix,
     RMSNorm,
     SpatialAttention,
     TemporalCausalAttention,
@@ -58,6 +60,18 @@ class TestTlobBaseModules(unittest.TestCase):
         loss = y[:, 0, :].sum()
         loss.backward()
         self.assertTrue(torch.all(x.grad[:, 1:, :] == 0))
+
+    def test_mlplob_feat_mix_shape(self):
+        module = MLPLOBFeatMix(d_model=32, expansion=4)
+        x = torch.randn(2, 8, 32)
+        y = module(x)
+        self.assertEqual(y.shape, x.shape)
+
+    def test_mlplob_temp_mix_shape(self):
+        module = MLPLOBTempMix(sequence_length=8, expansion=4)
+        x = torch.randn(2, 8, 32)
+        y = module(x)
+        self.assertEqual(y.shape, x.shape)
 
 
 if __name__ == "__main__":

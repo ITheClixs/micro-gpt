@@ -145,3 +145,46 @@ class TemporalCausalAttention(_MultiHeadAttention):
 
     def __init__(self, d_model: int, n_heads: int, dropout: float = 0.0):
         super().__init__(d_model=d_model, n_heads=n_heads, causal=True, dropout=dropout)
+
+
+class MLPLOBFeatMix(nn.Module):
+    """MLP-Mixer style feature-axis MLP applied row-wise (per timestep)."""
+
+    def __init__(self, d_model: int, expansion: int = 4, dropout: float = 0.0):
+        super().__init__()
+        hidden = int(d_model) * int(expansion)
+        self.norm = RMSNorm(d_model)
+        self.fc1 = nn.Linear(d_model, hidden)
+        self.fc2 = nn.Linear(hidden, d_model)
+        self.dropout = float(dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        residual = x
+        x = self.norm(x)
+        x = F.gelu(self.fc1(x))
+        if self.dropout > 0.0 and self.training:
+            x = F.dropout(x, p=self.dropout, training=True)
+        x = self.fc2(x)
+        return residual + x
+
+
+class MLPLOBTempMix(nn.Module):
+    """MLP-Mixer style temporal-axis MLP applied column-wise (per feature channel)."""
+
+    def __init__(self, sequence_length: int, expansion: int = 4, dropout: float = 0.0):
+        super().__init__()
+        hidden = int(sequence_length) * int(expansion)
+        self.norm = RMSNorm(sequence_length)
+        self.fc1 = nn.Linear(sequence_length, hidden)
+        self.fc2 = nn.Linear(hidden, sequence_length)
+        self.dropout = float(dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        residual = x
+        x_t = x.transpose(1, 2)
+        x_t = self.norm(x_t)
+        x_t = F.gelu(self.fc1(x_t))
+        if self.dropout > 0.0 and self.training:
+            x_t = F.dropout(x_t, p=self.dropout, training=True)
+        x_t = self.fc2(x_t)
+        return residual + x_t.transpose(1, 2)
