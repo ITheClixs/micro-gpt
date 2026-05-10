@@ -65,6 +65,32 @@ Generate from the local checkpoint:
   --max-new-tokens 8
 ```
 
+## Hugging Face CPU Dataset Smoke Run
+
+Fetch a tiny text slice from the Hugging Face Dataset Viewer API:
+
+```bash
+./venv/bin/python scripts/fetch_hf_text_sample.py \
+  --dataset roneneldan/TinyStories \
+  --config default \
+  --split train \
+  --text-field text \
+  --rows 32 \
+  --output /tmp/tinystories_cpu_sample.txt
+```
+
+Train the repository-native micro-GPT on CPU:
+
+```bash
+./venv/bin/python -m src.micro_gpt.train \
+  --config configs/micro_gpt/cpu_m4_smoke.json \
+  --train \
+  --text-file /tmp/tinystories_cpu_sample.txt \
+  --checkpoint-out /tmp/micro_gpt_cpu_tinystories.pt \
+  --metrics-out /tmp/micro_gpt_cpu_tinystories_metrics.json \
+  --run-name macbook-m4-cpu-tinystories-smoke
+```
+
 ## Terminal Micro-GPT CLI
 
 Inspect the architecture and parameter count:
@@ -141,8 +167,9 @@ This path fine-tunes a GPT-2 style causal language model for summarization. It i
 - [Implementation plan](docs/implementation_plan.md)
 - [Literature review](docs/literature_review.md)
 - [Experiment protocol](docs/experiment_protocol.md)
+- [Hugging Face CPU training runbook](docs/huggingface_cpu_training.md)
 - [Agent instructions](AGENTS.md)
 
 ## Current Research Rule
 
-No full model training, Hugging Face Jobs submission, or benchmark claim should happen without an explicit experiment request. Current commands are dry-run and visualization oriented.
+Full-scale model training, Hugging Face Jobs submission, or benchmark claims require an explicit experiment request. Bounded CPU smoke training is allowed for terminal verification when the dataset slice, config, checkpoint path, and metrics path are recorded.

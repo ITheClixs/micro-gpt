@@ -11,7 +11,7 @@ import torch
 
 from .checkpoint import save_micro_gpt_checkpoint
 from .config import load_config
-from .data import encode_text, make_lm_batch
+from .data import encode_text, load_text, make_lm_batch
 from .metrics import perplexity, tokens_per_second
 from .model import MicroGPT
 
@@ -30,6 +30,15 @@ def set_seed(seed):
 
 def run_dry_training(config, text=DEFAULT_DEMO_TEXT):
     return _run_training_loop(config, text=text, dry_run=True)
+
+
+def resolve_training_text(text=DEFAULT_DEMO_TEXT, text_file=None, text_field="text"):
+    if text_file is None:
+        return text
+    loaded_text = load_text(text_file, text_field=text_field)
+    if not loaded_text.strip():
+        raise ValueError("training text file must not be empty.")
+    return loaded_text
 
 
 def run_training(
@@ -118,6 +127,15 @@ def build_parser():
     parser.add_argument("--config", required=True, help="Path to a micro-GPT JSON config.")
     parser.add_argument("--text", default=DEFAULT_DEMO_TEXT, help="Inline training text corpus.")
     parser.add_argument(
+        "--text-file",
+        help="Path to a UTF-8 text or JSONL corpus. JSONL reads the field selected by --text-field.",
+    )
+    parser.add_argument(
+        "--text-field",
+        default="text",
+        help="JSONL field to read when --text-file points to a .jsonl corpus.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Run a tiny deterministic smoke training loop without checkpointing.",
@@ -136,16 +154,20 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     config = load_config(args.config)
+    try:
+        text = resolve_training_text(args.text, args.text_file, text_field=args.text_field)
+    except (OSError, KeyError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
     if args.train == args.dry_run:
         raise SystemExit("Choose exactly one of --dry-run or --train.")
     if args.dry_run:
-        metrics = run_dry_training(config, text=args.text)
+        metrics = run_dry_training(config, text=text)
     else:
         if args.checkpoint_out is None:
             raise SystemExit("--checkpoint-out is required with --train.")
         metrics = run_training(
             config,
-            text=args.text,
+            text=text,
             checkpoint_path=args.checkpoint_out,
             metrics_path=args.metrics_out,
             run_name=args.run_name,

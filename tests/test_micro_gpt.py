@@ -8,7 +8,7 @@ from src.micro_gpt.config import MicroGPTConfig, load_config
 from src.micro_gpt.checkpoint import load_micro_gpt_checkpoint
 from src.micro_gpt.data import CharTokenizer, make_lm_batch
 from src.micro_gpt.model import MicroGPT
-from src.micro_gpt.train import run_dry_training, run_training
+from src.micro_gpt.train import resolve_training_text, run_dry_training, run_training
 
 
 class MicroGPTTest(unittest.TestCase):
@@ -98,6 +98,23 @@ class MicroGPTTest(unittest.TestCase):
         self.assertEqual(metrics["steps"], 2)
         self.assertGreater(metrics["parameter_count"], 0)
         self.assertIn("loss", metrics)
+
+    def test_training_text_can_be_loaded_from_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            text_path = Path(temp_dir) / "corpus.txt"
+            text_path.write_text("file based micro gpt corpus", encoding="utf-8")
+
+            text = resolve_training_text(text_file=text_path)
+
+        self.assertEqual(text, "file based micro gpt corpus")
+
+    def test_training_text_file_rejects_empty_corpus(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            text_path = Path(temp_dir) / "empty.txt"
+            text_path.write_text("   ", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "must not be empty"):
+                resolve_training_text(text_file=text_path)
 
     def test_training_writes_checkpoint_and_metrics(self):
         config = MicroGPTConfig(
