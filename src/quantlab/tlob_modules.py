@@ -95,3 +95,53 @@ class MCDropout(nn.Module):
 
     def set_mc_active(self, active: bool) -> None:
         self.mc_active = bool(active)
+
+
+class _MultiHeadAttention(nn.Module):
+    def __init__(self, d_model: int, n_heads: int, causal: bool, dropout: float = 0.0):
+        super().__init__()
+        if d_model % n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads.")
+        self.d_model = int(d_model)
+        self.n_heads = int(n_heads)
+        self.head_dim = self.d_model // self.n_heads
+        self.causal = bool(causal)
+        self.q_proj = nn.Linear(d_model, d_model, bias=False)
+        self.k_proj = nn.Linear(d_model, d_model, bias=False)
+        self.v_proj = nn.Linear(d_model, d_model, bias=False)
+        self.out_proj = nn.Linear(d_model, d_model, bias=False)
+        self.dropout = float(dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() != 3:
+            raise ValueError("attention expects (B, L, d_model).")
+        b, length, _ = x.shape
+        q = self.q_proj(x).view(b, length, self.n_heads, self.head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(b, length, self.n_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(b, length, self.n_heads, self.head_dim).transpose(1, 2)
+        attn = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        if self.causal:
+            mask = torch.full(
+                (length, length), float("-inf"), device=x.device, dtype=attn.dtype
+            ).triu_(1)
+            attn = attn + mask.unsqueeze(0).unsqueeze(0)
+        weights = F.softmax(attn, dim=-1)
+        if self.dropout > 0.0 and self.training:
+            weights = F.dropout(weights, p=self.dropout, training=True)
+        output = weights @ v
+        output = output.transpose(1, 2).contiguous().view(b, length, self.d_model)
+        return self.out_proj(output)
+
+
+class SpatialAttention(_MultiHeadAttention):
+    """Multi-head attention across the feature axis (non-causal)."""
+
+    def __init__(self, d_model: int, n_heads: int, dropout: float = 0.0):
+        super().__init__(d_model=d_model, n_heads=n_heads, causal=False, dropout=dropout)
+
+
+class TemporalCausalAttention(_MultiHeadAttention):
+    """Causal multi-head attention across the time axis."""
+
+    def __init__(self, d_model: int, n_heads: int, dropout: float = 0.0):
+        super().__init__(d_model=d_model, n_heads=n_heads, causal=True, dropout=dropout)

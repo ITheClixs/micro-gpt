@@ -2,7 +2,13 @@ import unittest
 
 import torch
 
-from src.quantlab.tlob_modules import BilinearNormalization, MCDropout, RMSNorm
+from src.quantlab.tlob_modules import (
+    BilinearNormalization,
+    MCDropout,
+    RMSNorm,
+    SpatialAttention,
+    TemporalCausalAttention,
+)
 
 
 class TestTlobBaseModules(unittest.TestCase):
@@ -36,6 +42,22 @@ class TestTlobBaseModules(unittest.TestCase):
         x = torch.ones(8, 16)
         y = module(x)
         self.assertTrue(torch.allclose(y, x))
+
+
+    def test_spatial_attention_shape(self):
+        module = SpatialAttention(d_model=32, n_heads=4)
+        x = torch.randn(2, 8, 32)
+        y = module(x)
+        self.assertEqual(y.shape, x.shape)
+
+    def test_temporal_causal_attention_masks_future(self):
+        module = TemporalCausalAttention(d_model=32, n_heads=4)
+        torch.manual_seed(0)
+        x = torch.randn(2, 8, 32, requires_grad=True)
+        y = module(x)
+        loss = y[:, 0, :].sum()
+        loss.backward()
+        self.assertTrue(torch.all(x.grad[:, 1:, :] == 0))
 
 
 if __name__ == "__main__":
