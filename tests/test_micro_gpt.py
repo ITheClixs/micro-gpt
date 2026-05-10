@@ -5,9 +5,10 @@ from pathlib import Path
 import torch
 
 from src.micro_gpt.config import MicroGPTConfig, load_config
+from src.micro_gpt.checkpoint import load_micro_gpt_checkpoint
 from src.micro_gpt.data import CharTokenizer, make_lm_batch
 from src.micro_gpt.model import MicroGPT
-from src.micro_gpt.train import run_dry_training
+from src.micro_gpt.train import run_dry_training, run_training
 
 
 class MicroGPTTest(unittest.TestCase):
@@ -97,6 +98,38 @@ class MicroGPTTest(unittest.TestCase):
         self.assertEqual(metrics["steps"], 2)
         self.assertGreater(metrics["parameter_count"], 0)
         self.assertIn("loss", metrics)
+
+    def test_training_writes_checkpoint_and_metrics(self):
+        config = MicroGPTConfig(
+            vocab_size=16,
+            block_size=8,
+            n_layer=1,
+            n_head=2,
+            n_embd=16,
+            dropout=0.0,
+            batch_size=2,
+            max_steps=2,
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_path = Path(temp_dir) / "model.pt"
+            metrics_path = Path(temp_dir) / "metrics.json"
+
+            metrics = run_training(
+                config,
+                text="micro gpt can now train locally",
+                checkpoint_path=checkpoint_path,
+                metrics_path=metrics_path,
+                run_name="unit-test",
+            )
+            checkpoint = load_micro_gpt_checkpoint(checkpoint_path)
+            metrics_file_exists = metrics_path.exists()
+
+        self.assertEqual(metrics["steps"], 2)
+        self.assertFalse(metrics["dry_run"])
+        self.assertEqual(metrics["run_name"], "unit-test")
+        self.assertTrue(metrics_file_exists)
+        self.assertEqual(checkpoint["metadata"]["run_name"], "unit-test")
+        self.assertIn("model", checkpoint)
 
 
 if __name__ == "__main__":

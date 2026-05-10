@@ -27,7 +27,7 @@ Every real experiment must record:
 4. Run a dry run.
 5. Run a one-step terminal smoke pass with `python -m src.micro_gpt.cli smoke`.
 6. If checkpoint plumbing changed, save a smoke checkpoint and generate from it.
-7. Run the planned training pass only after explicit approval.
+7. Run bounded local training only after explicit approval, using `--train`, `--checkpoint-out`, and `--metrics-out`.
 8. Save checkpoint metadata and metrics.
 9. Generate deterministic samples from fixed prompts.
 10. Add results to a metrics artifact before making README claims.

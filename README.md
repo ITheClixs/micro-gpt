@@ -41,6 +41,30 @@ This command exercises the training loop on a tiny in-memory corpus. It does not
   --dry-run
 ```
 
+## Local Micro-GPT Training
+
+This is a bounded local run that writes a checkpoint and JSON metrics. It does not use Hugging Face Jobs or any remote GPU.
+
+```bash
+./venv/bin/python -m src.micro_gpt.train \
+  --config configs/micro_gpt/tiny_debug.json \
+  --train \
+  --text "micro gpt local training corpus for terminal verification" \
+  --checkpoint-out /tmp/micro_gpt_local.pt \
+  --metrics-out /tmp/micro_gpt_metrics.json \
+  --run-name local-smoke
+```
+
+Generate from the local checkpoint:
+
+```bash
+./venv/bin/python -m src.micro_gpt.cli generate \
+  --config configs/micro_gpt/tiny_debug.json \
+  --checkpoint /tmp/micro_gpt_local.pt \
+  --prompt "micro" \
+  --max-new-tokens 8
+```
+
 ## Terminal Micro-GPT CLI
 
 Inspect the architecture and parameter count:
