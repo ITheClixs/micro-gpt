@@ -7,7 +7,7 @@ import argparse
 import torch
 
 from .checkpoint import load_micro_gpt_checkpoint
-from .cli import _generate_with_tokenizer_vocab, non_negative_int
+from .cli import _decode_known, _encode_known, _generate_with_tokenizer_vocab, non_negative_int
 from .config import load_config
 from .data import CharTokenizer
 from .model import MicroGPT
@@ -41,14 +41,16 @@ def main(argv=None):
     model.load_state_dict(checkpoint["model"])
     if not args.prompt:
         raise SystemExit("generate --prompt must not be empty.")
-    prompt = torch.tensor([tokenizer.encode(args.prompt)], dtype=torch.long)
+    prompt = torch.tensor([_encode_known(tokenizer, args.prompt)], dtype=torch.long)
     generated = _generate_with_tokenizer_vocab(
         model,
         prompt,
         max_new_tokens=args.max_new_tokens,
         tokenizer_vocab_size=tokenizer.vocab_size,
+        temperature=args.temperature,
+        top_k=args.top_k,
     )
-    print(tokenizer.decode(generated[0].tolist()))
+    print(_decode_known(tokenizer, generated[0].tolist()))
 
 
 if __name__ == "__main__":

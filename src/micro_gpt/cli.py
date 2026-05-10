@@ -69,13 +69,23 @@ def mask_logits_to_vocab(logits, vocab_size):
 
 
 @torch.no_grad()
-def _generate_with_tokenizer_vocab(model, input_ids, max_new_tokens, tokenizer_vocab_size):
+def _generate_with_tokenizer_vocab(
+    model,
+    input_ids,
+    max_new_tokens,
+    tokenizer_vocab_size,
+    temperature=1.0,
+    top_k=None,
+):
     was_training = model.training
     model.eval()
     for _ in range(max_new_tokens):
         context = input_ids[:, -model.config.block_size:]
-        logits = model(context).logits[:, -1, :]
+        logits = model(context).logits[:, -1, :] / max(temperature, 1e-8)
         logits = mask_logits_to_vocab(logits, tokenizer_vocab_size)
+        if top_k is not None:
+            values, _ = torch.topk(logits, min(top_k, tokenizer_vocab_size, logits.size(-1)))
+            logits = logits.masked_fill(logits < values[:, [-1]], -float("inf"))
         probs = torch.softmax(logits, dim=-1)
         next_token = torch.multinomial(probs, num_samples=1)
         input_ids = torch.cat((input_ids, next_token), dim=1)
