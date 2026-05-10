@@ -6,10 +6,9 @@ import argparse
 
 import torch
 
-from .checkpoint import load_micro_gpt_checkpoint
+from .checkpoint import load_micro_gpt_checkpoint, tokenizer_from_dict
 from .cli import _decode_known, _encode_known, _generate_with_tokenizer_vocab, non_negative_int
 from .config import load_config
-from .data import CharTokenizer
 from .model import MicroGPT
 
 
@@ -33,10 +32,7 @@ def main(argv=None):
     except KeyError:
         config = load_config(args.config)
         checkpoint = torch.load(args.checkpoint, map_location="cpu")
-        tokenizer = CharTokenizer(
-            stoi=checkpoint["tokenizer"]["stoi"],
-            itos={int(key): value for key, value in checkpoint["tokenizer"]["itos"].items()},
-        )
+        tokenizer = tokenizer_from_dict(checkpoint["tokenizer"])
     model = MicroGPT(config)
     model.load_state_dict(checkpoint["model"])
     if not args.prompt:

@@ -27,6 +27,16 @@ This document tracks the research references that shape the repository. It is no
 - [TRL](https://huggingface.co/docs/trl): Hugging Face post-training library covering SFT, DPO, GRPO, reward modeling, PPO, and related methods.
 - [LeRobot](https://huggingface.co/docs/lerobot/index): Hugging Face robotics and RL ecosystem; useful for future embodied RL or imitation-learning extensions.
 
+## Quantitative Finance and Market Microstructure
+
+- [Avellaneda-Stoikov market making](https://www.math.nyu.edu/~avellane/AvellanedaStoikov.pdf): Inventory-aware market making with explicit spread and risk controls.
+- [DeepLOB](https://huggingface.co/papers?q=Limit+Order+Book): Deep learning on limit order books; a reference point for order-book feature pipelines.
+- [TLOB](https://huggingface.co/papers/2502.15757): Transformer-style limit order book modeling for future sequence-model experiments.
+- [FinRL](https://huggingface.co/papers/2011.09607): Reinforcement-learning trading environments and portfolio control.
+- [FinRL-Meta](https://huggingface.co/papers/2112.06753): Dataset and environment infrastructure for financial RL research.
+- [DRL crypto market making](https://huggingface.co/papers/1911.08647): Reinforcement learning in crypto market making, useful as a public analogue for inventory-sensitive strategies.
+- [MacroHFT](https://huggingface.co/papers/2406.14537): Regime routing and high-frequency inference ideas for future market-state gating.
+
 ## Research Hygiene
 
 Use these references as anchors for design and evaluation, not as decoration. A new feature that claims to implement a paper-derived method should include:

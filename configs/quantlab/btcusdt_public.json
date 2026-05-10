@@ -1,0 +1,68 @@
+{
+  "adapter_targets": [
+    "cme_futures",
+    "ice_futures",
+    "fx_spot",
+    "lobster",
+    "databento",
+    "tardis",
+    "polygon",
+    "broker_websocket",
+    "exchange_websocket"
+  ],
+  "datasets": [
+    {
+      "kind": "market_microbars",
+      "name": "btcusdt_microbar_v2",
+      "source": "Mindbyte-89/btcusdt-microbar-v2",
+      "status": "public_mvp",
+      "venue": "crypto"
+    },
+    {
+      "kind": "time_series",
+      "name": "diffquant_btcusdt_1m",
+      "source": "ResearchRL/diffquant-data",
+      "status": "public_mvp",
+      "venue": "crypto"
+    },
+    {
+      "domain": "quant",
+      "kind": "reasoning",
+      "name": "alpha_instruct",
+      "source": "VladHong/Alpha-Instruct",
+      "status": "public_mvp"
+    },
+    {
+      "domain": "quant",
+      "kind": "reasoning",
+      "name": "quantqa",
+      "source": "ReinforceNow/quantqa",
+      "status": "public_mvp"
+    }
+  ],
+  "feature_horizons_ms": [
+    1000,
+    5000,
+    30000
+  ],
+  "label_cost_threshold": "spread",
+  "name": "btcusdt_public",
+  "notes": "Public BTCUSDT orderflow and quant reasoning MVP. Adapter targets are reserved for later venue-specific ingestion.",
+  "pipeline": {
+    "backtest": {
+      "fee_bps": 1.0,
+      "max_drawdown": 0.2,
+      "max_position": 1,
+      "no_trade_threshold": 0.0,
+      "slippage_bps": 1.0
+    },
+    "baselines": [
+      "ofi_logistic",
+      "ewma_volatility",
+      "microprice_edge"
+    ]
+  },
+  "source_kind": "public",
+  "symbol": "BTCUSDT"
+}
+

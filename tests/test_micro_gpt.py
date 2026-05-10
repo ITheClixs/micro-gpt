@@ -6,7 +6,8 @@ import torch
 
 from src.micro_gpt.config import MicroGPTConfig, load_config
 from src.micro_gpt.checkpoint import load_micro_gpt_checkpoint
-from src.micro_gpt.data import CharTokenizer, make_lm_batch
+from src.micro_gpt.checkpoint import save_micro_gpt_checkpoint
+from src.micro_gpt.data import BPETokenizer, CharTokenizer, make_lm_batch
 from src.micro_gpt.model import MicroGPT
 from src.micro_gpt.train import resolve_training_text, run_dry_training, run_training
 
@@ -72,6 +73,14 @@ class MicroGPTTest(unittest.TestCase):
         decoded = tokenizer.decode(encoded)
 
         self.assertEqual(decoded, "ban")
+
+    def test_bpe_tokenizer_round_trips_text(self):
+        tokenizer = BPETokenizer.from_text("banana bread", target_vocab_size=16)
+
+        encoded = tokenizer.encode("banana")
+        decoded = tokenizer.decode(encoded)
+
+        self.assertEqual(decoded, "banana")
 
     def test_make_lm_batch_returns_shifted_targets(self):
         tokens = torch.arange(12)
@@ -147,6 +156,49 @@ class MicroGPTTest(unittest.TestCase):
         self.assertTrue(metrics_file_exists)
         self.assertEqual(checkpoint["metadata"]["run_name"], "unit-test")
         self.assertIn("model", checkpoint)
+
+    def test_bpe_training_reports_tokenizer_kind(self):
+        config = MicroGPTConfig(
+            vocab_size=16,
+            block_size=8,
+            n_layer=1,
+            n_head=2,
+            n_embd=16,
+            dropout=0.0,
+            batch_size=2,
+            max_steps=2,
+            tokenizer_kind="bpe",
+            tokenizer_vocab_size=24,
+        )
+
+        metrics = run_dry_training(config, text="micro gpt bpe corpus")
+
+        self.assertEqual(metrics["tokenizer_kind"], "bpe")
+        self.assertGreaterEqual(metrics["tokenizer_vocab_size"], 2)
+
+    def test_bpe_checkpoint_round_trip_preserves_tokenizer_metadata(self):
+        config = MicroGPTConfig(
+            vocab_size=16,
+            block_size=8,
+            n_layer=1,
+            n_head=2,
+            n_embd=16,
+            dropout=0.0,
+            batch_size=1,
+            max_steps=1,
+            tokenizer_kind="bpe",
+            tokenizer_vocab_size=16,
+        )
+        model = MicroGPT(config)
+        tokenizer = BPETokenizer.from_text("micro gpt checkpoint", target_vocab_size=16)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_path = Path(temp_dir) / "bpe.pt"
+            save_micro_gpt_checkpoint(checkpoint_path, model, config, tokenizer, metadata={"source": "unit-test"})
+            payload = load_micro_gpt_checkpoint(checkpoint_path)
+
+        self.assertEqual(payload["tokenizer"].kind, "bpe")
+        self.assertEqual(payload["metadata"]["source"], "unit-test")
 
 
 if __name__ == "__main__":

@@ -115,6 +115,49 @@ Generate from the tuned checkpoint:
   --max-new-tokens 96
 ```
 
+## Quantlab Microstructure Spine
+
+The `src.quantlab` package provides deterministic public-market research primitives for BTCUSDT-style order-flow work. It includes market-event schemas, feature formulas, direction and triple-barrier labels, cost-aware baselines, walk-forward backtesting, and dataset manifests for future venue adapters.
+
+Build a dataset manifest from the public MVP config:
+
+```bash
+./venv/bin/python -m src.quantlab.datasets build \
+  --config configs/quantlab/btcusdt_public.json \
+  --output /tmp/quantlab_btcusdt_manifest.json
+```
+
+Convert local market events into feature and label rows:
+
+```bash
+./venv/bin/python -m src.quantlab.features build \
+  --input /tmp/btcusdt_events.jsonl \
+  --output /tmp/btcusdt_features.jsonl
+
+./venv/bin/python -m src.quantlab.labels build \
+  --input /tmp/btcusdt_events.jsonl \
+  --horizons 1s,5s,30s \
+  --cost-threshold spread \
+  --output /tmp/btcusdt_labels.jsonl
+```
+
+Train the deterministic baseline and run a bounded backtest:
+
+```bash
+./venv/bin/python -m src.quantlab.baselines train \
+  --model ofi_logistic \
+  --features /tmp/btcusdt_features.jsonl \
+  --labels /tmp/btcusdt_labels.jsonl \
+  --output /tmp/btcusdt_baseline.json
+
+./venv/bin/python -m src.quantlab.backtest run \
+  --predictions /tmp/btcusdt_predictions.jsonl \
+  --labels /tmp/btcusdt_labels.jsonl \
+  --output /tmp/btcusdt_backtest.json
+```
+
+The `src.micro_gpt.train` path also supports BPE-aware configs such as `configs/micro_gpt/quant_bpe_6m.json` and `configs/micro_gpt/quant_bpe_15m.json`. These configs keep the from-scratch micro-GPT identity while allowing domain-specific token packing for quant research text.
+
 ## Hugging Face Quant Finance Reasoning Tuning
 
 Build a temporary corpus from public Hugging Face quantitative-finance reasoning datasets:

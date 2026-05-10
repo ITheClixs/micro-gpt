@@ -10,10 +10,10 @@ import torch
 
 from .checkpoint import load_micro_gpt_checkpoint, save_micro_gpt_checkpoint
 from .config import load_config
-from .data import CharTokenizer, make_lm_batch
+from .data import BPETokenizer, CharTokenizer, make_lm_batch
 from .metrics import perplexity, tokens_per_second
 from .model import MicroGPT
-from .train import set_seed
+from .train import ensure_batchable_training_text, set_seed
 
 
 ARCHITECTURE_FLAGS = {
@@ -33,7 +33,9 @@ def _config_with_vocab(config, vocab_size):
     return type(config)(**{**config.to_dict(), "vocab_size": effective_vocab})
 
 
-def _build_tokenizer(text):
+def _build_tokenizer(text, tokenizer_kind="char", target_vocab_size=None):
+    if tokenizer_kind == "bpe":
+        return BPETokenizer.from_text(text, target_vocab_size=target_vocab_size)
     if len(set(text)) < 2:
         text = text + "\n "
     return CharTokenizer.from_text(text)
@@ -48,6 +50,8 @@ def _encode_known(tokenizer, text):
 
 
 def _decode_known(tokenizer, token_ids):
+    if hasattr(tokenizer, "decode"):
+        return tokenizer.decode(token_ids)
     return "".join(tokenizer.itos.get(int(token_id), "") for token_id in token_ids)
 
 
@@ -122,10 +126,14 @@ def inspect_config(config_path):
 def smoke(config_path, text, max_new_tokens, save_checkpoint=None):
     base_config = load_config(config_path)
     training_text = _ensure_batchable_text(text, base_config.block_size)
-    tokenizer = _build_tokenizer(training_text)
+    training_text, tokens, tokenizer = ensure_batchable_training_text(
+        training_text,
+        tokenizer_kind=base_config.tokenizer_kind,
+        block_size=base_config.block_size,
+        target_vocab_size=base_config.tokenizer_vocab_size or base_config.vocab_size,
+    )
     config = _config_with_vocab(base_config, tokenizer.vocab_size)
     set_seed(config.seed)
-    tokens = torch.tensor(tokenizer.encode(training_text), dtype=torch.long)
     model = MicroGPT(config)
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -203,7 +211,11 @@ def generate_text(
         model.load_state_dict(payload["model"])
     elif random_init:
         base_config = load_config(config_path)
-        tokenizer = _build_tokenizer(prompt + vocab_text)
+        tokenizer = _build_tokenizer(
+            prompt + vocab_text,
+            tokenizer_kind=base_config.tokenizer_kind,
+            target_vocab_size=base_config.tokenizer_vocab_size or base_config.vocab_size,
+        )
         config = _config_with_vocab(base_config, tokenizer.vocab_size)
         set_seed(config.seed)
         model = MicroGPT(config)

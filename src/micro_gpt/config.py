@@ -22,6 +22,9 @@ class MicroGPTConfig:
     weight_decay: float = 0.1
     grad_clip: float = 1.0
     seed: int = 1337
+    tokenizer_kind: str = "char"
+    tokenizer_vocab_size: int | None = None
+    grad_accum_steps: int = 1
 
     def __post_init__(self):
         if self.vocab_size <= 1:
@@ -40,6 +43,12 @@ class MicroGPTConfig:
             raise ValueError("batch_size must be positive.")
         if self.max_steps < 1:
             raise ValueError("max_steps must be positive.")
+        if self.tokenizer_kind not in {"char", "bpe"}:
+            raise ValueError("tokenizer_kind must be 'char' or 'bpe'.")
+        if self.tokenizer_vocab_size is not None and self.tokenizer_vocab_size < 2:
+            raise ValueError("tokenizer_vocab_size must be at least 2 when set.")
+        if self.grad_accum_steps < 1:
+            raise ValueError("grad_accum_steps must be positive.")
 
     def to_dict(self):
         return asdict(self)

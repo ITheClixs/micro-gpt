@@ -7,24 +7,27 @@ from pathlib import Path
 import torch
 
 from .config import MicroGPTConfig
-from .data import CharTokenizer
+from .data import BPETokenizer, CharTokenizer
 
 
 CHECKPOINT_VERSION = 1
 
 
 def tokenizer_to_dict(tokenizer):
+    if hasattr(tokenizer, "to_dict"):
+        return tokenizer.to_dict()
     return {
+        "type": "char",
         "stoi": dict(tokenizer.stoi),
         "itos": {str(index): char for index, char in tokenizer.itos.items()},
     }
 
 
 def tokenizer_from_dict(payload):
-    return CharTokenizer(
-        stoi={str(char): int(index) for char, index in payload["stoi"].items()},
-        itos={int(index): str(char) for index, char in payload["itos"].items()},
-    )
+    tokenizer_type = payload.get("type", "char")
+    if tokenizer_type == "bpe":
+        return BPETokenizer.from_dict(payload)
+    return CharTokenizer.from_dict(payload)
 
 
 def save_micro_gpt_checkpoint(path, model, config, tokenizer, metadata=None):

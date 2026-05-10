@@ -11,7 +11,7 @@ import torch
 
 from .checkpoint import save_micro_gpt_checkpoint
 from .config import load_config
-from .data import encode_text, load_text, make_lm_batch
+from .data import encode_text_with_tokenizer, load_text, make_lm_batch
 from .metrics import perplexity, tokens_per_second
 from .model import MicroGPT
 
@@ -39,6 +39,22 @@ def resolve_training_text(text=DEFAULT_DEMO_TEXT, text_file=None, text_field="te
     if not loaded_text.strip():
         raise ValueError("training text file must not be empty.")
     return loaded_text
+
+
+def ensure_batchable_training_text(text, tokenizer_kind, block_size, target_vocab_size=None):
+    if not text:
+        raise ValueError("training text must not be empty.")
+    tokens, tokenizer = encode_text_with_tokenizer(
+        text,
+        tokenizer_kind=tokenizer_kind,
+        target_vocab_size=target_vocab_size,
+    )
+    if tokens.numel() > block_size:
+        return text, tokens, tokenizer
+    expanded_tokens = tokens
+    while expanded_tokens.numel() <= block_size:
+        expanded_tokens = torch.cat([expanded_tokens, tokens], dim=0)
+    return text, expanded_tokens, tokenizer
 
 
 def run_training(
@@ -76,7 +92,12 @@ def run_training(
 
 def _run_training_loop(config, text=DEFAULT_DEMO_TEXT, dry_run=True, run_name="dry-run"):
     set_seed(config.seed)
-    tokens, tokenizer = encode_text(text)
+    text, tokens, tokenizer = ensure_batchable_training_text(
+        text,
+        tokenizer_kind=config.tokenizer_kind,
+        block_size=config.block_size,
+        target_vocab_size=config.tokenizer_vocab_size or config.vocab_size,
+    )
     effective_vocab = max(config.vocab_size, tokenizer.vocab_size)
     if effective_vocab != config.vocab_size:
         config = type(config)(**{**config.to_dict(), "vocab_size": effective_vocab})
@@ -111,6 +132,7 @@ def _run_training_loop(config, text=DEFAULT_DEMO_TEXT, dry_run=True, run_name="d
         "perplexity": perplexity(final_loss.detach()),
         "parameter_count": model.parameter_count(),
         "tokenizer_vocab_size": tokenizer.vocab_size,
+        "tokenizer_kind": config.tokenizer_kind,
         "tokens_per_second": tokens_per_second(token_count, elapsed),
         "tokens_processed": token_count,
         "dry_run": dry_run,

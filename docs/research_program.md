@@ -48,6 +48,10 @@ The RL and alignment track starts with GridWorld and implements returns, advanta
 
 The micro-GPT track implements a small causal language model with modern decoder-only components. It now has a terminal-first CLI for inspection, one-step smoke runs, random-init generation, and checkpoint round trips. Initial experiments use deterministic dry runs and TinyStories-style corpora. Future training should report config, seed, parameter count, token budget, validation perplexity, generated samples, hardware, and wall-clock time.
 
+### Quant Research Spine
+
+The quantlab track formalizes public market-microstructure research with deterministic feature formulas, direction labels, triple-barrier targets, cost-aware baseline models, and walk-forward backtests. The MVP source shape is BTCUSDT order-flow and public quant reasoning data. Future adapters can map the same schema to futures, FX, LOBSTER, Databento, Tardis, Polygon, and exchange websocket feeds.
+
 ### Parameter-Efficient Adaptation
 
 The adapter track implements LoRA-style low-rank linear adapters with frozen base weights. The initial primitive is intended for shape, dtype/device, and trainable-parameter inspection before any real fine-tuning workflow is added.
